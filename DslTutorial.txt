@@ -1,0 +1,21 @@
+Combining Deep and Shallow embeddings for EDSLs
+===============================================
+
+Embedded domain specific languages are typically categorized as either
+deep or shallow embeddings. In deep embeddings the object language is
+implemented by constructing a syntax tree in the host language. This
+syntax tree can then be manipulated and evaluated in many different
+ways. Shallow embeddings give a direct interpretation of the object
+language in the host language which can can give rise to succinct and
+fast implementations.
+
+In this tutorial we will advocate a combined approach, using a deeply
+embedded core of the object language and model additional language
+features using shallow embeddings. This combination gives considerable
+flexibility in experimenting with language features. It also enables a
+powerful form of partial evaluation for the object language
+
+This tutorial will include several examples of the synergies that come
+out of this combined approach. Some of these examples will be taken
+from our experience with implementing Feldspar, a language for digital
+signal processing designed together with industrial partners.
