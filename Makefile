@@ -1,5 +1,5 @@
 tutorialSlides.html: tutorialSlides.md
-	pandoc tutorialSlides.md -t slidy -s -o tutorialSlides.html
+	pandoc tutorialSlides.md -t slidy -s -o tutorialSlides.html --tab-stop=2
 
 tutorial.pdf: tutorial.tex
 	pdflatex tutorial.tex
