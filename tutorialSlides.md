@@ -15,7 +15,7 @@ Chalmers University of Technology  ![Chalmers logo]
 ELTE University                    ![ELTE logo]
 ----                               ----
 
-[Chalmers logo]: Chalmers_logo.png
+[Chalmers logo]: Chalmers_logo_small.png
 [ELTE logo]: cimer.png
 [Ericsson logo]: 219px-Ericsson_logo.png
 
@@ -35,11 +35,11 @@ processing.
 
 # Contrast Deep and Shallow Embeddings
 
-What do I mean with Deep and Shallow Embeddings
+What do I mean with Deep and Shallow Embeddings?
 
 # Running example contrasting Deep and Shallow Embeddings
 
-Simple language for regions
+Simple language for 2D regions
 
 ~~~
 type Region
@@ -55,7 +55,7 @@ annulus :: Radius -> Radius -> Region
 annulus r1 r2 = outside (circle	r1) /\ (circle r2)
 ~~~
 
-Credit to Paul Hudak
+Credit to Carlsson, Hudak and Jones \cite{carlson1993experiment}
 
 # Shallow Embedding
 
@@ -70,18 +70,20 @@ r1 /\ r2  = \p -> r1 p && r2 p
 r1 \/ r2  = \p -> r1 p || r2 p
 ~~~
 
-# Shallow Embedding -- Pros and Cons
+The type `Point -> Bool` is the *semantic domain* of the shallow embedding
+
+# Shallow Embedding - Pros and Cons
 
 ## Pros
 
-* Easy to add new language constructs 
-  -- as long as they can be interpreted in the semantic domain
+* Easy to add new language constructs - as long as they can be
+  interpreted in the semantic domain
 
 * Efficient, tagless evaluation
 
 ##  Cons
 
-* Fixes the interpretation, not possible to (easily) add another interpretation
+* Fixes the interpretation, doesn't allow for adding another interpretation
 
 # Deep Embedding
 
@@ -102,7 +104,7 @@ p `inRegion` (Intersect r1 r2) = p `inRegion` r1 && p `inRegion` r2
 p `inRegion` (Union     r1 r2) = p `inRegion` r1 || p `inRegion` r2
 ~~~
 
-# Deep Embedding -- Pros and Cons
+# Deep Embedding - Pros and Cons
 
 ## Pros
 
@@ -110,7 +112,7 @@ p `inRegion` (Union     r1 r2) = p `inRegion` r1 || p `inRegion` r2
 
   E.g. compile regions to C functions
 
-* Possible to optimize the representation
+* Possible to optimize the representation, e.g. using smart constructors
 
   ~~~~
   outside (Outside r) = r
@@ -120,54 +122,14 @@ p `inRegion` (Union     r1 r2) = p `inRegion` r1 || p `inRegion` r2
 
 * Laborious to add new language constructs
 
-* Requires a new data type for the AST -- more code
+* Requires a new data type for the AST - more code
 
-* Potentially slow, tagful interpretation
-
-# Embeddings - Pros and Cons
-
------  -----                                 -----
-       Shallow                               Deep
------  -----                                 -----
-Pros   * Easy to add new language 
-         constructs 
-         -- as long as they can be 
-         interpreted in the semantic domain  
-       * Efficient, tagless evaluation
-
-Cons   * Fixes the interpretation, not       * Laborious to add new language 
-         possible to (easily) add              constructs
-	 another interpretation              * Potentially slow, tagful 
-					       interpretation
-                                             * Requires a new data type for 
-                                               the AST -- more code
------  ----                                  ----
-
-# Hybrid approaches
-
-Kansas Lava, an embedded hardware description language, employs a
-hybrid approach where the deep embedding contains a shallow embedding.
-
-~~~
-data Signal a = Signal (Stream a) (D a)
-
-data Stream a = a :~ Stream a
-
-type D a = AST
-~~~
-
-## Pros
-
-Allows for both efficient, tagless evaluation and computing an AST
-
-## Cons
-
-Worst of both world when it comes to extensibility
+* Potentially slow, tagful evaluation
 
 # Conclusion: Deep and Shallow embeddings
 
-Deep and Shallow embeddings are two important ways to embed a target language
-in a host language
+Deep and Shallow embeddings are two complementary ways to embed a
+target language in a host language
 
 Use a shallow embedding:
 
@@ -182,15 +144,22 @@ Use a deep embedding:
 
 # Finally Tagless
 
-The Finally Tagless approach to embedding languages solves some of the
-same problems that I'm going to talk about in this tutorial.
+The Finally Tagless approach \cite{carette2009finally} to embedding
+languages can be used to achieve effects similar to what I present
+here.
 
 Why I not going to say anything about the Finally Tagless approach, and
 why we don't use it in the Feldspar project:
 
-* Types become unfriendly, involving e.g higher kinded type variables
-* Not nice for end users who are not themselves functional programmers
-* Does not mix well with observable sharing
+* Types become a little less unfriendly, involving e.g higher kinded type variables
+* Hard to motivate for end users who are not themselves functional programmers
+
+# Combining Deep and Shallow Embedding
+
+Goals:
+
+* Nice interface for the embedded language
+* Make it convenient to experiment with new language features
 
 # Combining Deep and Shallow Embedding
 
@@ -198,19 +167,23 @@ The essence of this technique is to have:
 
 * A deeply embedded core language
 * Additional language features shallowly embedded
+* The deep embedding becomes the semantic domain of the shallow embeddings
 
-# Functional C -- Deep Embedding
+# Functional C - Deep Embedding
 
 Our example language for demonstrating our main point is a small
 functional flavored C.
 
 ~~~
 data FunC a where
-  LitI   :: Int  -> FunC Int
-  LitB   :: Bool -> FunC Bool
-  While :: (FunC s -> FunC Bool) -> (FunC s -> FunC s) -> FunC s -> FunC s
-  If    :: FunC Bool -> FunC a -> FunC a -> FunC a
-
+  LitI     :: Int  -> FunC Int
+  LitB     :: Bool -> FunC Bool
+  While    :: (FunC s -> FunC Bool) -> (FunC s -> FunC s) -> FunC s -> FunC s
+  If       :: FunC Bool -> FunC a -> FunC a -> FunC a
+  Pair     :: FunC a -> FunC b -> FunC (a,b)
+  Fst      :: FunC (a,b) -> FunC a
+  Snd      :: FunC (a,b) -> FunC b
+  
   Prim1    :: String -> (a -> b) -> FunC a -> FunC b
   Prim2    :: String -> (a -> b -> c) -> FunC a -> FunC b -> FunC c
 
@@ -240,6 +213,9 @@ eval (While c b i)   = head $
                        iterate (eval . b . value) $
                        eval i
 eval (If c t e)      = if eval c then eval t else eval e
+eval (Pair a b)      = (eval a,eval b)
+eval (Fst p)         = fst (eval p)
+eval (Snd p)         = snd (eval p)
 eval (Prim1 _ f a)   = f (eval a)
 eval (Prim2 _ f a b) = f (eval a) (eval b)
 eval (Value a)       = a
@@ -278,8 +254,16 @@ Given the `Syntactic` class we now export all our language constructs
 as overloaded
 
 ~~~
+true :: FunC Bool
+true = LitB True
+
+false :: FunC Bool
+false = LitB False
+
 ifC :: Syntactic a => FunC Bool -> a -> a -> a
 ifC c t e = fromFunC (If c (toFunC t) (toFunC e))
+
+(?) = ifC
 
 while :: Syntactic s => (s -> FunC Bool) -> (s -> s) -> s -> s
 while c b i = fromFunC (While (c . fromFunC) (toFunC . b . fromFunC) (toFunC i))
@@ -302,18 +286,120 @@ modulus :: FunC Int -> FunC Int -> FunC Int
 modulus a b = while (>=b) (subtract b) a
 ~~~
 
+I assume the existence of primitive functions `>=` and `subtract`
+
 # Adding a feature
 
-Under our new regiment, new language features come with a Deep part
-and a Shallow part.
+Under our new regime, new language features are represented using a
+Shallow embedding.
 
-The Deep part is an addition to the AST
+The Shallow embedding is a new type
 
-The Shallow part is a new type
+If the Deep embedding cannot represent the new language feature we
+will have to extend the AST
+
+# Options feature
+
+As a warmup we will add conditional values to `FunC`.
+
+The idea is to mimic provide functionality similar to Haskell's
+`Maybe`-type.
+
+~~~
+data Maybe a = Just a | Nothing
+~~~
+
+# Option embedding
+
+~~~
+data Option a = Option { isSome   :: FunC Bool
+                       , fromSome :: a
+                       }
+
+instance Syntactic a => Syntactic (Option a) where
+  type Internal (Option a) = (Bool,Internal a)
+  fromFunC m = Option (Fst m) (Snd m)
+  toFunC (Option b a) = Pair b a
+~~~
+
+The name `Option` comes from O`Caml and is chosen so as to not collide with
+any Haskell type.
+
+# Operations on Option - 1st attempt
+
+~~~
+some :: a -> Option a
+some a = Option true a
+
+none :: Option a
+none = Option false ?
+~~~
+
+How can we define `none`?
+
+We need a notion of undefined values!
+
+# Extending the deep embedding with undefined values
+
+~~~
+data FunC
+  ...
+  Undef :: FunC a
+  ...
+
+eval (Undef) = undefined
+
+undef :: Syntactic a => a
+undef = fromFunC Undef
+~~~
+
+
+# Operations on Option
+
+~~~
+some :: a -> Option a
+some a = Option true a
+
+none :: Syntactic a => Option a
+none = Option false undef
+
+option :: (Syntactic a, Syntactic b) => 
+          b -> (a -> b) -> Option a -> b
+option noneCase someCase opt = ifC (isSome opt)
+       	                           (someCase (fromSome opt))
+                                   noneCase
+
+instance Functor Option where
+  fmap f (Option b a) = Option b (f a)
+
+instance Monad Option where
+  return a  = some a
+  opt >>= k = b { isSome = isSome opt ? (isSome b, false) }
+    where b = k (fromSome opt)
+~~~
+
+# Example program
+
+Assuming the following operation
+
+~~~
+divO :: FunC Int -> FunC Int -> Option (FunC Int)
+~~~
+
+We can use Haskell's overloaded do-notation
+
+~~~
+divTest :: FunC Int -> FunC Int -> FunC Int -> Option (FunC Int)
+divTest a b c = do r1 <- divO a b
+                   r2 <- divO a c
+                   return (a+b)
+~~~
+
+The resulting AST is a sequence of if-expressions.
 
 # Vector feature
 
-Our FunC language is rather impoverished at the moment and at the very
+Our `FunC` language is rather impoverished at the moment and at the very
 minimum we will require arrays.
 
 In our addition we will distinguish between *arrays* and *vectors*
@@ -337,13 +423,20 @@ data FunC a where
 eval (Arr l ixf) = listArray (0,lm1) $
                    [ (eval $ ixf $ value i) | i  <- [0..lm1]]
   where lm1  = eval l - 1
+
+len :: FunC (Array Int a) -> FunC Int
+len (Arr l _) = l
+
+(+!+) :: FunC (Array Int a) -> FunC Int -> a
+Arr _ f +!+ ix = f ix
 ~~~
 
 This is a popular representation for arrays. Can be traced back to Pan
 
 Arrays will be stored in memory
 
-Each element is computed independently; can be computed in parallel
+Each element is computed independently; the whole array can be
+computed in parallel
 
 # Vectors cont.
 
@@ -368,11 +461,14 @@ The `Syntactic` instance makes it part of our language
 Examples of how to write functions for `Vector`
 
 ~~~
-mapVec :: (a -> b) -> Vector a -> Vector b
-mapVec f (Indexed l ixf) = Indexed l (f . ixf)
-
 takeVec :: FunC Int -> Vector a -> Vector a
-takeVec i (Indexed l ixf) = Indexed (min i l) ixf
+takeVec i (Indexed l ixf) = Indexed (minF i l) ixf
+
+enumVec :: FunC Int -> FunC Int -> Vector (FunC Int)
+enumVec f t = Indexed (t - f + 1) (\ix -> ix + f)
+
+instance Functor Vector where
+  fmap f (Indexed l ixf) = Indexed l (f . ixf)
 ~~~
 
 Note that they only involve the Shallow embedding, no manipulation
@@ -387,6 +483,24 @@ Once the syntax tree is built there are no `Vector` values left
 
 This is usually referred to as *Fusion*.
 
+# Example of Fusion
+
+A small test program
+
+~~~
+vecTest n = toFunC $ fmap (+7) $ fmap (*3) $ enumVec 5 n
+~~~
+
+All the intermediate vectors will disappear
+
+~~~
+\a -> { (((i+5) * 3) + 7) | i <- 0 .. ((a - 5) + 1) - 1 }
+~~~
+
+This made-up syntax is an array comprehension. The variable `i` takes on
+all the indices of the array, and the expression `(((i+5) * 3) + 7)` computes
+the value of the array for each index.
+
 # Fusion with Vectors
 
 With our design of `Vector` we can give strong guarantees about fusion
@@ -396,7 +510,7 @@ With our design of `Vector` we can give strong guarantees about fusion
 
 Much stronger guarantee than conventional compiler optimizations
 
-Helps keep the cost model transparent
+Helps the programmer understand whether his program will be efficient or not.
 
 # Fusion caveat
 
@@ -419,17 +533,21 @@ possible to add monads to an embedded language using the techniques
 presented here. There is a paper at IFL this year describing the
 details.
 
-# Pros and Cons
+# Combining Deep and Shallow Embeddings - Pros and Cons
 
 ## Pros
 
 * Adding new features is relatively light weight by letting the shallow
   embedding do most of the work
+  - Typically a single constructor suffices to cover a lot of functionality
+* Very Haskell-like programming interface for the embedded language
+  - Supports writing instances for many common classes and using Haskell's
+    built-in syntactic sugar
 * Fusion
 
 ## Cons
 
-* We have to modify the AST
+* We sometimes have to modify the AST data type
 
 ## Remedy
 
@@ -458,7 +576,7 @@ Excercise:
 * Add a new constructor to the AST to represent sequential arrays
 * Write a new type, or add a constructor to the already existing `Vector` type
 * Write the `Syntactic` instance
-* Write some functions for the new feature, like `map` and `scan`
+* Write some functions for the new feature, like `map` and `scan`.
 * Does the new representation support fusion? Experiment!
 
 # Credits
@@ -467,7 +585,7 @@ I can take very little credit for the presented material
 
 * Emil Axelsson as written most of the core Feldspar code
 * The rest of the Feldspar team for discussion
-* Pan, by Elliott, Finne & de Moor, contained many of the ideas presented here
+* Pan, by Elliott, Finne & de Moor, contains many of the ideas presented here \cite{elliott2003compiling}
 
 # Thanks
 
