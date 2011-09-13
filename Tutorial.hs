@@ -222,6 +222,10 @@ vecTest n = fmap (+7) $ fmap (*3) $ enumVec 5 n
 
 vecTestPrint = putStrLn $ show $ vecTest
 
+squares :: FunC Int -> Vector (FunC Int)
+squares n = fmap square $ enumVec 1 n
+  where square x = x * x
+
 divTest :: FunC Int -> FunC Int -> FunC Int -> Option (FunC Int)
 divTest a b c = do r1 <- divO a b
                    r2 <- divO a c

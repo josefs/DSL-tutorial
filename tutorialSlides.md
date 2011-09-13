@@ -195,8 +195,6 @@ data FunC a where
 It is inspired by the core language used in Feldspar, which has served us well
 for writing embedded software.
 
-The fact that we're using HOAS is inconsequential for this tutorial.
-
 The problem of having several constructor for primitive functions is
 solvable, but that's a topic for another tutorial
 
@@ -474,6 +472,15 @@ instance Functor Vector where
 Note that they only involve the Shallow embedding, no manipulation
 of syntax trees
 
+# Vectors - Example program
+
+Compute the moving average of a vector
+
+~~~
+movingAvg :: FunC Int -> Vector (FunC Int) -> Vector (FunC Int)
+movingAvg n = map ((`divP` n) . sum . take n) . tails
+~~~
+
 # Vectors cont.
 
 A consequence of this design is that the `Vector` type only exists at
@@ -488,17 +495,19 @@ This is usually referred to as *Fusion*.
 A small test program
 
 ~~~
-vecTest n = toFunC $ fmap (+7) $ fmap (*3) $ enumVec 5 n
+squares :: FunC Int -> Vector (FunC Int)
+squares n = fmap square $ enumVec 1 n
+  where square x = x * x
 ~~~
 
-All the intermediate vectors will disappear
+The intermediate vector will disappear
 
 ~~~
-\a -> { (((i+5) * 3) + 7) | i <- 0 .. ((a - 5) + 1) - 1 }
+\a -> { (i+1) * (i+1) | i <- 0 .. (a + 1) - 1 }
 ~~~
 
 This made-up syntax is an array comprehension. The variable `i` takes on
-all the indices of the array, and the expression `(((i+5) * 3) + 7)` computes
+all the indices of the array, and the expression `(i+1) * (i+1)` computes
 the value of the array for each index.
 
 # Fusion with Vectors
